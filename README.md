@@ -67,3 +67,8 @@ It's based on [BPB Worker Panel](https://github.com/bia-pain-bache/BPB-Worker-Pa
 and [BPB Wizard](https://github.com/bia-pain-bache/BPB-Wizard) (also
 GPL-3.0) — see `NOTICE` for details. The interface and branding are
 original to Dart Panel.
+
+## Author
+
+- [DartPanel](https://github.com/DartPanel)
+- [TahaFathalizadeh](https://github.com/TahaFathalizadeh)
