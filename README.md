@@ -20,8 +20,7 @@ Cloudflare account in a couple of minutes — no server to rent or maintain.
 
 ## Quick start
 
-See **[docs/setup-guide.md](docs/setup-guide.md)** for the full walkthrough:
-publishing a release, deploying the wizard, and creating your first panel.
+Visit [Wizard Page](https://wizard-dart-panel.dartpanel.workers.dev) to setup your Dart Panel!
 
 ## How it works
 
