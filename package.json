@@ -1,0 +1,12 @@
+{
+  "name": "dart-panel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "build:ui": "node scripts/build.mjs",
+    "test": "node --import ./tests/setup.mjs --test tests/*.test.mjs",
+    "build": "node scripts/build.mjs && node scripts/bundle-worker.mjs"
+  }
+}

@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0354c9">
+<meta name="robots" content="noindex,nofollow">
+<meta name="dp-logo" content="../../assets/web/logo-full.png">
+<title>Dart Panel</title>
+<link rel="icon" href="../../assets/web/favicon.png">
+<link rel="stylesheet" href="../../shared/theme.css">
+<style>
+  [hidden] { display: none !important; }
+  .center { min-height: 100dvh; display: grid; place-items: center; padding: 20px 16px; }
+  .card { width: 100%; max-width: 400px; }
+  .brand { display: block; height: 46px; margin: 0 auto 22px; }
+  .strength { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+  .strength i { display: block; height: 100%; width: 0; background: var(--flight); }
+
+  /* App shell: content column with a bottom tab bar on phones, top tabs on wide screens */
+  #app { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .tabs { position: fixed; inset: auto 0 0 0; z-index: 5; display: flex; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .tabs button { flex: 1; min-height: 60px; background: none; border: 0; font: inherit; font-size: .8rem; color: var(--ink-soft); cursor: pointer; display: grid; gap: 2px; place-items: center; align-content: center; }
+  .tabs button svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tabs button[aria-current=page] { color: var(--cobalt); font-weight: 600; }
+  .tabs button[aria-current=page]::after { content: ""; position: absolute; top: -1px; height: 3px; width: 44px; background: var(--flight); border-radius: 0 0 3px 3px; }
+  .tabs button { position: relative; }
+  .kv { display: grid; gap: 4px; margin-bottom: 14px; }
+  .kv > b { font-weight: 600; }
+  .row { display: flex; gap: 8px; }
+  .row .mono { flex: 1; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; }
+  .status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+  .stack > * + * { margin-top: 18px; }
+  .sub { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .sub:last-child { border-bottom: 0; padding-bottom: 0; }
+  .sub h2 { margin-bottom: 2px; } .sub p { margin: 0 0 8px; color: var(--ink-soft); font-size: .9rem; }
+  .sub .row .mono { min-width: 0; max-height: 3.2em; overflow: hidden; }
+  details.grp { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  details.grp + details.grp { margin-top: 10px; }
+  details.grp > summary { list-style: none; cursor: pointer; padding: 14px 16px; min-height: var(--tap); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  details.grp > summary::-webkit-details-marker { display: none; }
+  details.grp > summary::after { content: "+"; font-size: 1.3rem; color: var(--ink-soft); }
+  details.grp[open] > summary::after { content: "–"; }
+  details.grp > .body { padding: 2px 16px 16px; }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .checks label { display: flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 0 14px; border: 1px solid #c3d0d4; border-radius: 8px; background: #fff; cursor: pointer; }
+  .checks input, .toggle input { width: 20px; height: 20px; accent-color: var(--lagoon); }
+  .toggle { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
+  textarea { min-height: 96px; font-family: var(--mono); font-size: .9rem; }
+  .cred { display: grid; gap: 6px; margin-bottom: 14px; }
+  .cred .row { align-items: stretch; }
+  .savebar { position: sticky; bottom: calc(68px + env(safe-area-inset-bottom)); padding: 10px 0; background: linear-gradient(to top, var(--paper) 70%, transparent); margin-top: 14px; }
+  @media (min-width: 720px) { .savebar { bottom: 0; } }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; max-width: calc(100% - 32px); z-index: 10; }
+  @media (min-width: 720px) {
+    #app { padding-bottom: 0; }
+    .tabs { position: sticky; top: 0; inset: 0 0 auto 0; border-top: 0; border-bottom: 1px solid var(--line); justify-content: center; padding: 0; }
+    .tabs button { flex: 0 0 140px; min-height: 52px; grid-auto-flow: column; gap: 8px; }
+    .tabs button[aria-current=page]::after { top: auto; bottom: -1px; border-radius: 3px 3px 0 0; }
+    .toast { bottom: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="boot" class="center"><img class="brand" style="margin:0" data-logo alt="Dart Panel"></div>
+
+<div class="center" id="view-setup" hidden>
+  <form class="card sheet" id="setup" autocomplete="off">
+    <img class="brand" data-logo alt="Dart Panel">
+    <h1 style="font-size:1.35rem">Create your password</h1>
+    <p class="lead" style="margin-bottom:16px">This protects your panel. You will use it every time you sign in.</p>
+    <label class="field"><span>Password</span><input type="password" id="p1" required minlength="8" maxlength="200" autocomplete="new-password"><div class="strength"><i id="bar"></i></div><small>At least 8 characters.</small></label>
+    <label class="field"><span>Repeat password</span><input type="password" id="p2" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+    <div class="notice bad" id="setupErr" hidden></div>
+    <div class="actions"><button class="btn btn-primary" type="submit">Save password</button></div>
+  </form>
+</div>
+
+<div class="center" id="view-login" hidden>
+  <form class="card sheet" id="login">
+    <img class="brand" data-logo alt="Dart Panel">
+    <h1 style="font-size:1.35rem">Sign in</h1>
+    <p class="lead" style="margin-bottom:16px">Enter your panel password.</p>
+    <label class="field"><span>Password</span><input type="password" id="pw" required maxlength="200" autocomplete="current-password"></label>
+    <div class="notice bad" id="loginErr" hidden></div>
+    <div class="actions"><button class="btn btn-primary" type="submit">Sign in</button></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="top"><div class="top-in"><img data-logo alt="Dart Panel"><span class="status">Running</span></div></header>
+  <nav class="tabs" aria-label="Sections">
+    <button data-tab="overview" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overview</button>
+    <button data-tab="subs"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg>Links</button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Settings</button>
+    <button data-tab="account"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Account</button>
+  </nav>
+  <main class="wrap stack">
+    <section data-pane="overview">
+      <h1>Overview</h1>
+      <p class="lead">Your panel is online.</p>
+      <div class="sheet">
+        <div class="kv"><b>Panel address</b><div class="row"><div class="mono" id="addr"></div><button class="btn btn-quiet" type="button" id="copyAddr">Copy</button></div></div>
+        <div class="notice" style="margin:0">Open <b>Links</b> to get your subscription, or <b>Settings</b> to change ports, DNS and routing.</div>
+      </div>
+    </section>
+
+    <section data-pane="subs" hidden>
+      <h1>Links</h1>
+      <p class="lead">Add one of these subscription links to your app. Pick the one that matches your app.</p>
+      <div class="sheet" id="subList"></div>
+      <details class="grp" style="margin-top:14px"><summary>Single configs</summary><div class="body" id="linkList"></div></details>
+    </section>
+
+    <section data-pane="settings" hidden>
+      <h1>Settings</h1>
+      <p class="lead">Changes apply to your links the next time your app updates its subscription.</p>
+      <form id="setForm" autocomplete="off">
+        <details class="grp" open><summary>Connection</summary><div class="body">
+          <div class="field"><span>Protocols</span><div class="checks"><label><input type="checkbox" id="s-vless"> VLESS</label><label><input type="checkbox" id="s-trojan"> Trojan</label></div></div>
+          <div class="field"><span>Ports</span><div class="checks" id="s-ports"></div></div>
+          <label class="field"><span>Clean IPs or domains</span><textarea id="s-clean" spellcheck="false" placeholder="One per line"></textarea><small>Extra addresses your app can connect through. Up to 50.</small></label>
+          <label class="field"><span>Proxy IPs</span><textarea id="s-proxy" spellcheck="false" placeholder="One per line"></textarea><small>Used when a site behind Cloudflare cannot be reached directly. Optional port with host:port.</small></label>
+          <label class="field"><span>TLS fingerprint</span><select id="s-fp"></select></label>
+        </div></details>
+        <details class="grp"><summary>DNS</summary><div class="body">
+          <label class="field"><span>Remote DNS (DNS over HTTPS)</span><input type="text" id="s-rdns" inputmode="url" spellcheck="false" autocapitalize="off"></label>
+          <label class="field"><span>Local DNS</span><input type="text" id="s-ldns" spellcheck="false" autocapitalize="off"><small>Used for domains that should not go through the proxy.</small></label>
+        </div></details>
+        <details class="grp"><summary>Fragment</summary><div class="body">
+          <label class="toggle"><input type="checkbox" id="s-frag"> Split the first packets (helps on filtered networks)</label>
+          <label class="field" style="margin-top:12px"><span>Packets</span><select id="s-fpk"></select></label>
+          <label class="field"><span>Length</span><input type="text" id="s-flen" inputmode="numeric" spellcheck="false"><small>Range in bytes, like 100-200.</small></label>
+          <label class="field"><span>Interval</span><input type="text" id="s-fint" inputmode="numeric" spellcheck="false"><small>Range in milliseconds, like 1-1.</small></label>
+        </div></details>
+        <details class="grp"><summary>Routing</summary><div class="body">
+          <label class="toggle"><input type="checkbox" id="s-iran"> Connect directly to Iranian sites</label>
+          <label class="toggle"><input type="checkbox" id="s-lan"> Connect directly to local network addresses</label>
+          <label class="toggle"><input type="checkbox" id="s-ads"> Block ads</label>
+          <label class="toggle"><input type="checkbox" id="s-quic"> Block QUIC (forces normal HTTPS)</label>
+        </div></details>
+        <details class="grp"><summary>Names and credentials</summary><div class="body">
+          <label class="field"><span>Config name</span><input type="text" id="s-name" maxlength="24"></label>
+          <div class="cred"><b>VLESS UUID</b><div class="row"><div class="mono" id="c-uuid"></div><button class="btn btn-quiet" type="button" data-regen="uuid">New</button></div></div>
+          <div class="cred"><b>Trojan password</b><div class="row"><div class="mono" id="c-trojan"></div><button class="btn btn-quiet" type="button" data-regen="trojan">New</button></div></div>
+          <div class="cred"><b>Subscription link key</b><div class="row"><div class="mono" id="c-sub"></div><button class="btn btn-quiet" type="button" data-regen="sub">New</button></div><small style="color:var(--ink-soft)">Creating a new one stops the old subscription links from working.</small></div>
+        </div></details>
+        <div class="notice bad" id="setErr" hidden style="margin-top:14px"></div>
+        <div class="savebar"><button class="btn btn-primary" type="submit" style="width:100%">Save settings</button></div>
+      </form>
+    </section>
+
+    <section data-pane="account" hidden>
+      <h1>Account</h1>
+      <p class="lead">Change your password or sign out on this device.</p>
+      <form class="sheet" id="pwForm" autocomplete="off">
+        <h2 style="margin-bottom:12px">Change password</h2>
+        <label class="field"><span>Current password</span><input type="password" id="cur" required maxlength="200" autocomplete="current-password"></label>
+        <label class="field"><span>New password</span><input type="password" id="n1" required minlength="8" maxlength="200" autocomplete="new-password"><small>Changing it signs you out everywhere else.</small></label>
+        <label class="field"><span>Repeat new password</span><input type="password" id="n2" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+        <div class="notice bad" id="pwErr" hidden></div>
+        <div class="actions"><button class="btn btn-primary" type="submit">Update password</button></div>
+            </form>
+      <details class="grp" id="tgGrp" style="margin-top:10px"><summary>Telegram bot</summary><div class="body">
+        <div id="tgConnect">
+          <p class="lead" style="margin-bottom:12px">Create a bot with <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, then paste its token here.</p>
+          <label class="field"><span>Bot token</span><input type="text" id="tg-token" spellcheck="false" autocapitalize="off" placeholder="123456:AA...">
+          <small>Only this panel can see the token.</small></label>
+          <div class="notice bad" id="tgErr" hidden></div>
+          <div class="actions"><button class="btn btn-primary" type="button" id="tgSave">Connect bot</button></div>
+        </div>
+        <div id="tgConnected" hidden>
+          <div class="kv" style="margin-bottom:14px"><b>Bot</b><span id="tgBot" class="mono"></span></div>
+          <div id="tgUnlinked">
+            <p class="lead" style="margin-bottom:12px">Open the bot in Telegram and tap Start to get status updates and quick links here.</p>
+            <div class="actions"><a class="btn btn-primary" id="tgOpen" href="#" target="_blank" rel="noopener">Open bot in Telegram</a><button class="btn btn-quiet" type="button" id="tgCheck">I did this, check again</button></div>
+          </div>
+          <div id="tgLinked" hidden>
+            <p class="notice" style="margin:0 0 14px">Linked. You'll get a message here if your password changes.</p>
+            <div class="actions"><button class="btn btn-quiet" type="button" id="tgUnlink">Unlink this chat</button></div>
+          </div>
+          <div class="actions" style="margin-top:14px"><button class="btn btn-quiet" type="button" id="tgDisconnect">Disconnect bot</button></div>
+        </div>
+      </div></details>
+      <div class="actions" style="margin-top:14px"><button class="btn btn-quiet" id="logout" type="button">Sign out</button></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const LOGO = $('meta[name=dp-logo]').content; document.querySelectorAll('img[data-logo]').forEach((i) => (i.src = LOGO));
+const base = location.pathname.replace(/\/panel\/?$/, '');
+const views = ['setup', 'login', 'app'];
+
+function show(name) {
+  $('#boot').hidden = true;
+  views.forEach((v) => { $(v === 'app' ? '#app' : '#view-' + v).hidden = v !== name; });
+}
+async function call(route, body) {
+  const res = await fetch(`${base}/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
+  return data;
+}
+function err(el, msg) { el.textContent = msg; el.hidden = !msg; }
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 2600); }
+
+async function refresh() {
+  try {
+    const r = await fetch(`${base}/api/session`); const { state } = await r.json();
+    show(state); if (state === 'app') { $('#addr').textContent = location.origin + base + '/panel'; loadSettings(); loadTelegram(); }
+  } catch { $('#boot').textContent = 'Cannot reach the panel. Check your connection and reload.'; }
+}
+
+$('#p1').addEventListener('input', (e) => {
+  const v = e.target.value; let s = 0;
+  if (v.length >= 8) s++; if (v.length >= 12) s++; if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++; if (/\d/.test(v) && /[^A-Za-z0-9]/.test(v)) s++;
+  $('#bar').style.width = s * 25 + '%';
+});
+$('#setup').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if ($('#p1').value !== $('#p2').value) return err($('#setupErr'), 'The two passwords do not match. Type them again.');
+  err($('#setupErr'), '');
+  try { await call('setup', { password: $('#p1').value }); $('#p1').value = $('#p2').value = ''; refresh(); } catch (x) { err($('#setupErr'), x.message); }
+});
+$('#login').addEventListener('submit', async (e) => {
+  e.preventDefault(); err($('#loginErr'), '');
+  try { await call('login', { password: $('#pw').value }); $('#pw').value = ''; refresh(); } catch (x) { err($('#loginErr'), x.message); }
+});
+$('#pwForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if ($('#n1').value !== $('#n2').value) return err($('#pwErr'), 'The new passwords do not match.');
+  err($('#pwErr'), '');
+  try { await call('password', { current: $('#cur').value, password: $('#n1').value }); e.target.reset(); toast('Password updated'); } catch (x) { err($('#pwErr'), x.message); }
+});
+$('#logout').addEventListener('click', async () => { await call('logout'); refresh(); });
+$('#copyAddr').addEventListener('click', async () => { await navigator.clipboard.writeText($('#addr').textContent); toast('Address copied'); });
+document.querySelectorAll('.tabs [data-tab]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs [data-tab]').forEach((x) => x.removeAttribute('aria-current'));
+  b.setAttribute('aria-current', 'page');
+  document.querySelectorAll('[data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== b.dataset.tab));
+  window.scrollTo({ top: 0 });
+}));
+
+let cfg = null;
+const ids = { vless: '#s-vless', trojan: '#s-trojan' };
+function opts(sel, list, cur) { sel.replaceChildren(...list.map((v) => { const o = document.createElement('option'); o.value = o.textContent = v; o.selected = v === cur; return o; })); }
+async function getJSON(route, body) {
+  const res = body === undefined ? await fetch(`${base}/api/${route}`) : await fetch(`${base}/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { refresh(); throw new Error(data.error || 'Sign in again.'); }
+  if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
+  return data;
+}
+function copyRow(text, label) {
+  const row = document.createElement('div'); row.className = 'row';
+  const m = document.createElement('div'); m.className = 'mono'; m.textContent = text;
+  const b = document.createElement('button'); b.className = 'btn btn-quiet'; b.type = 'button'; b.textContent = label || 'Copy';
+  b.addEventListener('click', async () => { await navigator.clipboard.writeText(text); toast('Copied'); });
+  row.append(m, b); return row;
+}
+function render(data) {
+  cfg = data; const s = data.settings;
+  $('#subList').replaceChildren(...data.subs.map((x) => { const d = document.createElement('div'); d.className = 'sub'; d.innerHTML = '<h2></h2><p></p>'; d.firstChild.textContent = x.label; d.children[1].textContent = x.apps; d.append(copyRow(x.url)); return d; }));
+  $('#linkList').replaceChildren(...data.links.map((l) => { const d = document.createElement('div'); d.className = 'kv'; const b = document.createElement('b'); b.textContent = l.name; d.append(b, copyRow(l.url)); return d; }));
+  $('#s-vless').checked = s.protocols.vless; $('#s-trojan').checked = s.protocols.trojan;
+  $('#s-ports').replaceChildren(...data.limits.tlsPorts.map((p) => { const l = document.createElement('label'); const i = document.createElement('input'); i.type = 'checkbox'; i.value = p; i.checked = s.ports.includes(p); l.append(i, ' ' + p); return l; }));
+  $('#s-clean').value = s.cleanIPs.join('\n'); $('#s-proxy').value = s.proxyIPs.join('\n');
+  opts($('#s-fp'), data.limits.fingerprints, s.fingerprint); opts($('#s-fpk'), data.limits.fragmentPackets, s.fragment.packets);
+  $('#s-rdns').value = s.remoteDNS; $('#s-ldns').value = s.localDNS;
+  $('#s-frag').checked = s.fragment.enabled; $('#s-flen').value = s.fragment.length; $('#s-fint').value = s.fragment.interval;
+  $('#s-iran').checked = s.routing.bypassIran; $('#s-lan').checked = s.routing.bypassLAN; $('#s-ads').checked = s.routing.blockAds; $('#s-quic').checked = s.routing.blockQUIC;
+  $('#s-name').value = s.configName; $('#c-uuid').textContent = s.uuid; $('#c-trojan').textContent = s.trojanPass; $('#c-sub').textContent = s.subToken;
+}
+async function loadSettings() { try { render(await getJSON('settings')); } catch (x) { toast(x.message); } }
+$('#setForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); err($('#setErr'), '');
+  const body = {
+    protocols: { vless: $('#s-vless').checked, trojan: $('#s-trojan').checked },
+    ports: [...document.querySelectorAll('#s-ports input:checked')].map((i) => Number(i.value)),
+    cleanIPs: $('#s-clean').value, proxyIPs: $('#s-proxy').value, fingerprint: $('#s-fp').value,
+    remoteDNS: $('#s-rdns').value, localDNS: $('#s-ldns').value,
+    fragment: { enabled: $('#s-frag').checked, packets: $('#s-fpk').value, length: $('#s-flen').value, interval: $('#s-fint').value },
+    routing: { bypassIran: $('#s-iran').checked, bypassLAN: $('#s-lan').checked, blockAds: $('#s-ads').checked, blockQUIC: $('#s-quic').checked },
+    configName: $('#s-name').value,
+  };
+  try { render(await getJSON('settings', body)); toast('Settings saved'); } catch (x) { err($('#setErr'), x.message); $('#setErr').scrollIntoView({ block: 'center' }); }
+});
+document.querySelectorAll('[data-regen]').forEach((b) => b.addEventListener('click', async () => {
+  if (!confirm('Create a new value? Apps using the old one will need the new links.')) return;
+  try { render(await getJSON('regenerate', { what: b.dataset.regen })); toast('New value created'); } catch (x) { toast(x.message); }
+}));
+
+function tgShow(v) {
+  $('#tgConnect').hidden = v.connected; $('#tgConnected').hidden = !v.connected;
+  if (v.connected) { $('#tgBot').textContent = '@' + v.botUsername; $('#tgUnlinked').hidden = v.linked; $('#tgLinked').hidden = !v.linked; }
+}
+async function loadTelegram() { try { tgShow(await getJSON('telegram')); } catch { /* shown elsewhere */ } }
+$('#tgSave').addEventListener('click', async () => {
+  err($('#tgErr'), '');
+  const tok = $('#tg-token').value.trim();
+  if (!tok) return err($('#tgErr'), 'Paste your bot token first.');
+  try { tgShow(await getJSON('telegram/token', { token: tok })); $('#tg-token').value = ''; toast('Bot connected'); } catch (x) { err($('#tgErr'), x.message); }
+});
+$('#tgDisconnect').addEventListener('click', async () => {
+  if (!confirm('Disconnect the bot? You can reconnect it later with the same or a new token.')) return;
+  try { tgShow(await getJSON('telegram/disconnect', {})); toast('Bot disconnected'); } catch (x) { toast(x.message); }
+});
+$('#tgUnlink').addEventListener('click', async () => {
+  try { tgShow(await getJSON('telegram/unlink', {})); toast('Chat unlinked'); } catch (x) { toast(x.message); }
+});
+$('#tgCheck').addEventListener('click', loadTelegram);
+$('#tgOpen').addEventListener('click', async (e) => {
+  if ($('#tgOpen').dataset.ready) return; // already have a link, follow it normally
+  e.preventDefault();
+  try { const { deepLink } = await getJSON('telegram/link', {}); $('#tgOpen').href = deepLink; $('#tgOpen').dataset.ready = '1'; window.open(deepLink, '_blank', 'noopener'); }
+  catch (x) { toast(x.message); }
+});
+refresh();
+</script>
+</body>
+</html>

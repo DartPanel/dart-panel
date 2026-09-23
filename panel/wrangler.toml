@@ -1,0 +1,12 @@
+# Local development only. Production panels are deployed by the wizard from the built worker.js.
+name = "dart-panel-dev"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "REPLACE_WITH_DEV_KV_ID"
+
+[vars]
+SECURE_PATH = "dev"
+# For local dev put SESSION_SECRET in .dev.vars (never commit it).

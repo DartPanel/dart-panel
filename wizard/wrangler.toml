@@ -1,0 +1,8 @@
+# Dart Panel Wizard - deploy this Worker once, then open its address.
+name = "wizard-dart-panel"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Where the wizard downloads the ready-to-run panel from.
+PANEL_RELEASE_URL = "https://github.com/dartpanel/dart-panel/releases/latest/download/worker.js"

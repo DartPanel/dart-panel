@@ -1,0 +1,12 @@
+Dart Panel
+Copyright (C) 2026 Dart Panel contributors
+
+Dart Panel is free software licensed under the GNU General Public License v3.0
+(see LICENSE). It is derived from, and reuses logic of:
+
+  - BPB Worker Panel  https://github.com/bia-pain-bache/BPB-Worker-Panel  (GPL-3.0)
+  - BPB Wizard        https://github.com/bia-pain-bache/BPB-Wizard         (GPL-3.0)
+  Copyright (C) bia-pain-bache and contributors.
+
+The user interface, branding, and layout are original to Dart Panel.
+Files that contain code adapted from BPB keep this notice and must stay under GPL-3.0.

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0354c9">
+<title>Dart Panel Wizard</title>
+<link rel="icon" href="../../assets/web/favicon.png">
+<link rel="stylesheet" href="../../shared/theme.css">
+<style>
+  /* Flight path stepper: nodes echo the two dots in the logo */
+  .path { list-style: none; margin: 0 0 24px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); position: relative; }
+  .path::before { content: ""; position: absolute; top: 13px; inset-inline: 16.6% ; height: 3px; background: var(--line); border-radius: 2px; }
+  .path::after  { content: ""; position: absolute; top: 13px; inset-inline-start: 16.6%; height: 3px; border-radius: 2px; background: var(--flight);
+                  width: calc(var(--done, 0) * 33.4%); }
+  .path li { position: relative; text-align: center; font-size: .875rem; color: var(--ink-soft); z-index: 1; }
+  .path i { display: block; width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 50%; background: #fff; border: 3px solid var(--line); }
+  .path li[data-state=done] i, .path li[data-state=now] i { border-color: var(--lagoon); }
+  .path li[data-state=done] i { background: var(--lagoon); }
+  .path li[data-state=now] { color: var(--ink); font-weight: 600; }
+  @media (prefers-reduced-motion: no-preference) { .path::after { transition: width .35s ease; } }
+
+  section[hidden] { display: none; }
+  .log { list-style: none; margin: 0 0 16px; padding: 0; font-size: .95rem; }
+  .log li { padding: 8px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+  .log li:last-child { border-bottom: 0; }
+  .log .s { width: 1.2em; text-align: center; }
+  .log [data-s=run] .s { color: var(--lagoon); }
+  .log [data-s=ok]  .s { color: var(--ok); }
+  .log [data-s=err] .s { color: var(--danger); }
+  .copyrow { display: flex; gap: 8px; align-items: stretch; margin-bottom: 14px; }
+  .copyrow .mono { flex: 1; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; }
+  .copyrow .btn { flex: 0 0 auto; }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><img src="../../assets/web/logo-full.png" alt="Dart Panel"></div></header>
+
+<main class="wrap">
+  <h1>Set up your Dart Panel</h1>
+  <p class="lead">Deploy your own panel to Cloudflare in about a minute. Nothing is stored by this wizard.</p>
+
+  <ol class="path" id="path" aria-label="Progress">
+    <li data-state="now"><i></i>Connect</li>
+    <li data-state="todo"><i></i>Name</li>
+    <li data-state="todo"><i></i>Deploy</li>
+  </ol>
+
+  <form class="sheet" id="f1" data-step="1" autocomplete="off">
+    <h2>Connect Cloudflare</h2>
+    <p class="lead" style="margin-bottom:14px">Create an API token from your Cloudflare dashboard and paste it here.</p>
+    <div class="notice">Token permissions: <b>Workers Scripts: Edit</b>, <b>Workers KV Storage: Edit</b>, <b>Account Settings: Read</b>. <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">Open API tokens</a></div>
+    <label class="field"><span>API token</span>
+      <input type="password" id="token" required minlength="20" spellcheck="false" autocapitalize="off">
+      <small>The token is sent only to this wizard to create your panel. It is never stored or logged.</small></label>
+    <div class="actions"><button class="btn btn-primary" type="submit">Continue</button></div>
+  </form>
+
+  <form class="sheet" id="f2" data-step="2" hidden autocomplete="off">
+    <h2>Name your panel</h2>
+    <p class="lead" style="margin-bottom:14px">This becomes part of your panel address.</p>
+    <label class="field"><span>Worker name</span>
+      <div class="suffix"><input type="text" id="wname" required pattern="[a-z0-9][a-z0-9\-]{0,38}[a-z0-9]" value="dart-panel" spellcheck="false" autocapitalize="off"><b>.workers.dev</b></div>
+      <small>Lowercase letters, numbers and dashes.</small></label>
+    <div class="actions">
+      <button class="btn btn-quiet" type="button" data-back>Back</button>
+      <button class="btn btn-primary" type="submit">Deploy panel</button>
+    </div>
+  </form>
+
+  <section class="sheet" id="f3" data-step="3" hidden aria-live="polite">
+    <h2 id="f3t">Deploying</h2>
+    <ul class="log" id="log"></ul>
+    <div id="done" hidden>
+      <div class="notice warn">Save this address now. It contains a private path that is shown only once. You will create your password on first visit.</div>
+      <span class="field" style="margin-bottom:6px"><span>Panel address</span></span>
+      <div class="copyrow"><div class="mono" id="panelUrl"></div><button class="btn btn-quiet" type="button" data-copy="panelUrl">Copy</button></div>
+      <div class="actions"><a class="btn btn-primary" id="openPanel" href="#">Open panel</a></div>
+    </div>
+    <div id="fail" hidden>
+      <div class="notice bad" id="failMsg"></div>
+      <div class="actions"><button class="btn btn-quiet" type="button" data-back>Change details</button></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const steps = [$('#f1'), $('#f2'), $('#f3')];
+function go(n) {
+  steps.forEach((el, i) => (el.hidden = i !== n - 1));
+  [...$('#path').children].forEach((li, i) => (li.dataset.state = i < n - 1 ? 'done' : i === n - 1 ? 'now' : 'todo'));
+  $('#path').style.setProperty('--done', n - 1);
+  window.scrollTo({ top: 0 });
+}
+$('#f1').addEventListener('submit', (e) => { e.preventDefault(); go(2); });
+$('#f2').addEventListener('submit', (e) => { e.preventDefault(); deploy(); });
+document.addEventListener('click', async (e) => {
+  if (e.target.closest('[data-back]')) go($('#f3').hidden ? 1 : 2);
+  const c = e.target.closest('[data-copy]');
+  if (c) { await navigator.clipboard.writeText($('#' + c.dataset.copy).textContent); c.textContent = 'Copied'; setTimeout(() => (c.textContent = 'Copy'), 1500); }
+});
+
+function addLog(text) { const li = document.createElement('li'); li.dataset.s = 'run'; li.innerHTML = '<span class="s">•</span><span></span>'; li.lastChild.textContent = text; $('#log').append(li); return li; }
+function mark(li, ok) { li.dataset.s = ok ? 'ok' : 'err'; li.firstChild.textContent = ok ? '✓' : '✕'; }
+
+async function deploy() {
+  go(3); $('#log').replaceChildren(); $('#done').hidden = $('#fail').hidden = true; $('#f3t').textContent = 'Deploying';
+  const rows = new Map(); let current = null;
+  const fail = (msg) => { if (current) mark(current, false); $('#f3t').textContent = 'Deployment stopped'; $('#failMsg').textContent = msg; $('#fail').hidden = false; };
+  try {
+    const res = await fetch('/api/deploy', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: $('#token').value.trim(), name: $('#wname').value.trim() }),
+    });
+    if (!res.ok || !res.body) { const j = await res.json().catch(() => ({})); return fail(j.error || 'The wizard could not start the deployment.'); }
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = '';
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i; while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === 'step') {
+          if (ev.status === 'run') { current = addLog(ev.label); rows.set(ev.id, current); }
+          else mark(rows.get(ev.id), true);
+        } else if (ev.type === 'done') {
+          $('#panelUrl').textContent = ev.panelUrl; $('#openPanel').href = ev.panelUrl;
+          $('#token').value = ''; $('#f3t').textContent = 'Your panel is ready'; $('#done').hidden = false; return;
+        } else if (ev.type === 'error') return fail(ev.message);
+      }
+    }
+    fail('The connection closed before the deployment finished. Check your Cloudflare dashboard and try again.');
+  } catch (err) { fail('Network problem: ' + (err.message || err)); }
+}
+</script>
+</body>
+</html>
