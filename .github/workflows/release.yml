@@ -1,0 +1,45 @@
+# Builds panel/src into a single dist/worker.js and attaches it to the GitHub
+# Release. The wizard downloads that file from the release's "latest" URL
+# (see wizard/wrangler.toml -> PANEL_RELEASE_URL) to deploy new panels.
+name: Release panel worker
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build panel UI (inlines panel/ui/app.html into panel/src)
+        run: node scripts/build.mjs
+
+      - name: Bundle panel worker into a single file
+        run: node scripts/bundle-worker.mjs
+
+      - name: Run tests against the bundle
+        run: npm test
+
+      - name: Verify dist/worker.js was produced
+        run: test -s dist/worker.js
+
+      - name: Create/update GitHub Release with worker.js attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/worker.js
+          generate_release_notes: true
+          # GitHub's "latest" release is whichever non-draft, non-prerelease
+          # release is newest by publish date - not a specific tag name - so
+          # PANEL_RELEASE_URL (.../releases/latest/download/worker.js) always
+          # resolves to whichever of these runs published most recently.
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}

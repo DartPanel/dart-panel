@@ -1,0 +1,21 @@
+# Deploys the wizard Worker to Cloudflare. Run this once (Actions -> Deploy
+# wizard -> Run workflow) after adding the CLOUDFLARE_API_TOKEN secret below.
+# Re-run it any time you change wizard/ and want to update the live wizard.
+name: Deploy wizard
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy with Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: wizard
+          command: deploy
