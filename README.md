@@ -71,4 +71,3 @@ original to Dart Panel.
 ## Author
 
 - [DartPanel](https://github.com/DartPanel)
-- [TahaFathalizadeh](https://github.com/TahaFathalizadeh)
